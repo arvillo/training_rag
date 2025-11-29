@@ -13,14 +13,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-r = redis.Redis(host='localhost', port=6379)
-
-client = chromadb.PersistentClient('db/workshop_1')
-
 google_ef = embedding_functions.GoogleGenerativeAiEmbeddingFunction(
     api_key=os.getenv("GEMINI_API_KEY"),
     model_name="gemini-embedding-001"
 )
+
+client = chromadb.PersistentClient('db/workshop_1')
 
 collection = client.get_collection("gemini_demo", embedding_function=google_ef)
 
@@ -31,6 +29,8 @@ if not db.sql(f"SELECT * FROM information_schema.tables WHERE table_name = '{tab
     db.sql(f"CREATE TABLE {table_name} AS SELECT * FROM read_csv_auto('sample csv.csv')")
 
 df = db.sql(f"DESCRIBE {table_name}")
+
+r = redis.Redis(host='localhost', port=6379)
 
 llm = genai.Client(
     api_key = os.getenv('GEMINI_API_KEY'),
@@ -97,9 +97,7 @@ def retrieve_query(query):
     return get_rag_answer(results['documents'][0], query, client)
 
 def text_2_db(query):
-    db = duckdb.connect("db/workshop_db")
     table_name = 'alcohol_price'
-
     df = db.sql(f"DESCRIBE {table_name}")
 
     prompt = f"""
@@ -124,7 +122,6 @@ def text_2_db(query):
     sql_query = sql_query.replace("```sql","").replace("```","")
 
     res = db.sql(sql_query)
-    db.close()
     return res
 
 def classify_intent(query):
