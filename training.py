@@ -30,6 +30,8 @@ if not db.sql(f"SELECT * FROM information_schema.tables WHERE table_name = '{tab
 
 df = db.sql(f"DESCRIBE {table_name}")
 
+db.close()
+
 r = redis.Redis(host='localhost', port=6379)
 
 llm = genai.Client(
@@ -97,6 +99,7 @@ def retrieve_query(query):
     return get_rag_answer(results['documents'][0], query, client)
 
 def text_2_db(query):
+    db = duckdb.connect("db/workshop_db")
     table_name = 'alcohol_price'
     df = db.sql(f"DESCRIBE {table_name}")
 
@@ -122,9 +125,11 @@ def text_2_db(query):
     sql_query = sql_query.replace("```sql","").replace("```","")
 
     res = db.sql(sql_query)
+    db.close()
     return res
 
 def classify_intent(query):
+    db = duckdb.connect("db/workshop_db")
     prompt = f"""
     Decide if the query needs a vector search or text 2 sql search.print
     If the user is asking for specific data which is usually like a numerical operation like greater than, less than, etc. then it is a text 2 sql search. Similary if they are asking for details mentioning a specific field name like find me details of employee with id 123 then it is a text 2 sql search.
@@ -150,6 +155,8 @@ def classify_intent(query):
             "temperature": "0"
         }
     )
+    
+    db.close()
 
     return response.text
 
